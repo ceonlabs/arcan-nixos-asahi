@@ -1,0 +1,30 @@
+-- system_collapse
+-- @short: Collapse important subsystems, leaving only frameservers alive.
+-- @inargs: *applname*, *noadopt*
+-- @longdescr: This function purges audio/video/events from everything not
+-- strictly related to frameservers. Then, if *applname* was specified, it loads
+-- and runs *applname* and invokes an applname_adopt function for each
+-- frameserver related VID, unless *noadopt* has been set to true.
+-- This enables recovery from bad system states switching to an app that can
+-- permit the user to clean-up and save important
+-- information that would otherwise be lost or simply to switch active scripts
+-- while keeping core services intact. If *applname* is left undefined,
+-- the current namespaces and active scripts will be re-used but the scripting
+-- context will be reset.
+-- @note: frameservers existing in multiple context stack levels are collated
+-- down to a flat, new context.
+-- @note: if the number of running frameservers is higher than the current new
+-- context vobj limit, the vobj limit will be raised.
+-- @note: if there are more running frameservers in all contexts combined than
+-- what is permitted (compile-time) some frameservers will be truncated and
+-- deleted.  (likely to hit system process and descriptor limits before that
+-- happens).
+-- @note: frameservers will have their order value set depending on the context
+-- they were previously allocated in.
+-- @note: the search space for *applname* is constrained to namespace defined by
+-- the APPLBASE namespace.
+-- @group: system
+-- @cfunction: syscollapse
+-- @related:
+-- @exampleappl: tests/interactive/failover tests/interactive/failadopt
+

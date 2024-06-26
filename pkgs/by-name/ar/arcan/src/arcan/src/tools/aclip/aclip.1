@@ -1,0 +1,101 @@
+.\" groff -man -Tascii aclip.1
+.TH arcan 1 "February 2017" aclip "User manual"
+.SH NAME
+aclip \- command line interface to Arcan clipboards
+.SH SYNOPSIS
+.B aclip [OPTIONS]
+
+.SH DESCRIPTION
+This tool is used to send input to- and/or monitor- an arcan connection point
+that accepts clipboards as a primary connection, which is an indicator of
+a clipboard manager. It is up to the running set of scripts that controls
+the connection point to determine if this is permitted or not, but
+the 'safe default' is rejecting such connections. See 'Limitations' below.
+
+.SH OPTIONS
+.IP "\fB\-i, \-\-in\fR"
+Read valid UTF-8 input from standard input and forward to the clipboard.
+
+.IP "\fB\-I, \-\-in-data \fIdatastr\fR"
+Forward the contents of the datastr argument to the clipboard.
+
+.IP "\fB\-o, \-\-out\fR"
+Enable output mode, sending incoming clipboard entries (by default) to stdout.
+
+.IP "\fB\-e \-\-exec \fIexecstr\fR"
+For each new clipboard entry, run (popen) execstr in a subshell, where the
+entry contents will be available on stdin.
+
+.IP "\fB\-p, \-\-separator \fIsepstr\fR"
+(in -o mode) Append sepstr argument after each incoming clipboard entry.
+
+.IP "\fB\-l, \-\-loop\fR \fIcount\fR"
+(in -o mode) Set a limit of new entries that should be received from the
+clipboard. If count is set to '0', the program will loop indefinitely.
+
+.IP "\fQ\-s, \-\-silent\fR"
+Close stdout and fork into background (so best use with -e or -i/-I, not just -o)
+
+.IP "\fB\-d, \-\-display\fR \fIconnpath\fR"
+By default, the ARCAN_CONNPATH environment is used in order to find an
+arcan instance to connect to. This argument overrides the environment
+with the connpath argument.
+
+.IP "\fB\-h, \-\-help\fR"
+Show a brief summary of commands and usage.
+
+.SH EXAMPLES
+
+.PP
+This examples places 'hi there' on the clipboard.
+
+.B echo -n 'hi there' | aclip -p durden -i
+
+.PP
+Keep the X selection buffer synched to the latest received clipboard entry.
+
+.B aclip -o -l 0 -s -e xclip
+
+.PP
+Terminate after three completed clipboard entries. each new entry, spawn the
+"tee" command that appends to a log with the custom '||' string to separate
+between elements.
+
+.B aclip -l 0 -o -p "||" -e "tee -a >> log"
+
+.SH LIMITATIONS
+The appl that arcan is running must expose a connection point, and explicitly
+allow clipboard and/or clipboard-paste primary segments to connect. This is
+usually not added by default due to the security implications it might have.
+
+Additional constraints may also have been placed on this connection point.
+One common constraint is to only allow one active monitor or input connection.
+Other constraints may be read- or write- only access or ignoring write-
+operations that is longer than a certain cutoff value.
+
+Consult the documentation for the appl you are using to get more information
+on what applies to your particular scenario.
+
+All inputs and outputs need to be valid UTF-8 or they will likely be silently
+filtered. The tool is still young and few of the clipboard features offered by
+Arcan are exposed yet, this means that right now, only adding text to a
+clipboard, and monitoring the clipboard for entries actually work. Managing
+binary blobs, audio and video streams will be added in the near future.
+
+.SH ENVIRONMENT
+.TP
+.SM
+\fBARCAN_CONNPATH\fR
+Name of the connection point to use when connecting to arcan.
+.TP
+.SM
+\fBARCAN_CONNKEY\fR
+Key to use for authenticating againgst the connection path.
+
+.SH COPYRIGHT
+Copyright  ©  2017 Bjorn Stahl. 3-clause BSD licensed. This is free software:
+you are free  to  change and redistribute it. There is NO WARRANTY,
+to the extent permitted by law.
+
+.SH AUTHOR
+Bjorn Stahl <contact at arcan-fe dot com>

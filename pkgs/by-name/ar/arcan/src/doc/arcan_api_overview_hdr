@@ -1,0 +1,104 @@
+.\" groff -man -Tascii arcan_api_overview.1
+.TH arcan_api_overview 1 "August 2014" arcan "Developer API Reference"
+.SH NAME
+Arcan \- Scripting Overview
+
+.SH SYNOPSIS
+There is little work involved in getting an application (short, appl)
+up and running in Arcan.
+Simply create a directory with a qualifying name matching
+([a-Z]1[a-Z,0-9]* along with a similarly named my_applname.lua file inside.
+The following section list the entry points that
+the engine will look for, when appropriate (replace xxx with the
+qualifying name of your appl).
+
+To speed things along, look at the wiki on arcan-fe.com and work
+through the exercises corresponding to the ability level that you
+want to achieve.
+
+.SH Entry Points
+.IP "\fBxxx()\fr"
+Invoked as soon as audio/video/event/database subsystems are active.
+
+.IP "\fBxxx_clock_pulse()\fr"
+Invoked every logical clock-pulse on a default monotonic clock at 25Hz
+unless clock_pulse_batch is set, then it takes precedence. The CLOCK
+global provides the current global clock value.
+
+.IP "\fBxxx_clock_pulse_batch(nticks, count)
+Alternate form to _clock_pulse that handles congestion (> 1 ticks)
+by providing them in one single go.
+
+.IP "\fBxxx_input(evtbl)\fr"
+Invoked every time an input device emits a valid output sample,
+this varies with user activity and filter configuration.
+Evtbl contains a number of fields:
+kind : touch
+devid, subid, pressure, size, x, y
+
+kind : analog
+source, devid, subid, active, relative, samples
+
+kind : digital, translated = true
+number, keysym, modifiers, devid, subid, utf8, active, device, subdevice
+
+kind : digital, translated = false
+source, devid, subid, active
+
+kind : eyes
+blink_left, blink_right, gaze_x1, gaze_y1, gaze_x2, gaze_y2, present,
+head_x, head_y, head_z, head_rx, head_ry, head_rz
+
+.IP "\fBxxx_input_end()\fr"
+Signifies that the current input buffer is empty. This can be used as an
+input optimization trigger to accumulate input events before processing
+them forward.
+
+.IP "\fBxxx_input_raw()\fr"
+This behaves like an advanced complement to xxx_input.
+By implementing it the application signals that it can handle out of loop
+input events. This can be used to reduce input latency in cases where events
+arrive while GPUs are locked for scanout.
+The contract is that if this function is present, you cannot call any part of
+the API that would modify GPU related state. The safe option is to restrict
+handling to patching and forwarding input to an external client. If the input
+was consumed, return true. Otherwise the input will be re-injected when the
+GPUs have been unlocked.
+
+.IP "\fBxxx_adopt(vid, kind, title, parent, last)\fr"
+Invoked as part of system_collapse, script crash recovery fallback or on
+--pipe-stdin. Implies that there already exists a frameserver connection
+that can be adopted. Last indicates whethere there are more to
+come, and parent if there's a subsegment-parent relation. Return true if the
+connection can be imported into the current script, otherwise it will be
+destroyed automatically.
+
+.IP "\fBxxx_preframe_pulse() xxx_postframe_pulse()\fr"
+Invoked right before and after synchronized transfer of a video frame, this may
+occur at rather spurious intervals depending on engine configuration
+and active synchronization strategy. Any computation in this entrypoint
+should be considered costly and it is mainly provided for monitoring
+purpsoes.
+
+.IP "\fBxxx_adopt(vid, segid, title, parent, last)\fr"
+Invoked when an application is set to collapse with transfers or when
+recovering from a scripting error. It is used to allow the new script
+to retrieve externally bound vids. Return true if the VID was adopted
+otherwise it will be automatically deleted.
+
+.IP "\fBxxx_display_state(action, id, state)\fr"
+Invoked when there has been a change in the output display configuration
+state, typically in response to hotplug events.
+
+.IP "\fBxxx_fatal(msg)\fr"
+Invoked on a scripting error that is fatal, as a final means of saving
+state and conveying a message. The returned string will be attached to
+crash dump output.
+
+.IP "\fBxxx_shutdown()\fr"
+This entrypoint will be triggered as a final state before the arcan
+process will exit. The most reasonable use for this entrypoint is
+terminating network connections with protocols that work better when
+clients are cooperating, but also for saving configuration through
+the database (e.g. store_key).
+

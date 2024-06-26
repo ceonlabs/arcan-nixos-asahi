@@ -1,0 +1,17 @@
+-- suspend_target
+-- @short: Request that the target suspend execution,
+-- awaiting a resume or terminate call.
+-- @inargs: vid:target
+-- @inargs: vid:target, bool:noblock=false
+-- @longdescr:
+-- This tells the target frameserver to enter a low-power/passive mode until a
+-- ref:resume_target command has been issued. By default, this will block any
+-- attempt at transferring or resizing video buffers. This behaviour can be
+-- ignored by setting noblock=true.
+-- If suspend_target is set during the preroll stage, the frameserver will not
+-- be activated until a corresponding ref:resume_target call has been issued.
+-- On the client side, this will look like the _open call is blocking/stalling.
+-- @group: targetcontrol
+-- @cfunction: targetsuspend
+-- @related: resume_target
+

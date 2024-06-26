@@ -1,0 +1,91 @@
+This directory contains shmif- dependent frameservers, individual
+instructions on building and use may apply.
+
+complex/ tries to previde an exhaustive test case for all complex
+ window manager operations, ranging from popups, to subwindows,
+ viewports, dynamic custom mouse cursors etc.
+
+counter/ provides a simple color cycle in a predictable pattern
+
+counter-ndt/ uses a known color cycle and multi-buffering to test
+ how arcan selects buffers in multi-buffer mode
+
+counter-rcv/ used as a recipient for feedcopy or recordtarget
+ hooked up to a counter as a provider, checks for dropped or corrupted
+ frames
+
+selfdestr/ shuts down after approx 5 seconds, to test how various
+ scripts handle termination while something else is active, like
+ the global menu or binding bar in durden
+
+clockreq/ needs the corresponding clockreq appl in interactive running
+ (use clockreq as connection path) and tests both the builtin clock
+ handler for monotonic event delivery and for timers.
+
+gamma/ is used for testing sub-structure negotiation for exposing display
+ metadata and (optional) control/manipulation and safe-guards against
+ broken table updates.
+
+ioinject/ will attempt to simulate event injection by pressing random keys.
+This requires that the running appl explicitly enables it for the specific
+connection with the target_flags call. The eventtest interactive test
+enables this through the 'eventinjection' connection point.
+
+iodump/ will print out text representations for received input events
+ to standard output, working as a simple debugging tool for I/O translation
+ and routing.
+
+avlat/ is the software- setup for latency and buffering testing,
+ it cycles a number of colors and matching audio tones in response
+ to any digital input event, printing CSV timings for synch.
+ Audio is a simple sine-wave managed in a separate thread.
+
+initial/ connects and dumps the initial state set during the preroll phase.
+
+migrant/ will connect to the normal CONNPATH, render a number of frames
+ in one color channel, migrate or voluntarily pull its *dms and on
+ successful reconnection, switch active color channel
+
+tui_test/ attempts to use the shmif_tui library to create a text-
+ based user interface
+
+tui_media/ attempts to use the shmif_tui library and its handover
+feature to allocate a media window
+
+tui_scroll/ attempts to use the shmif_tui library and content hints
+to test server side decorations for scrolling
+
+tpack/ setup a context and replay a preset tpack buffer
+
+handover/ tests the handover feature by connecting, requesting a
+ handver subsegment and spawning that into a new process. This also
+ works as a stress- test as it will spawn/exec itself without limit.
+
+mousetest/ simply draw a mouse cursor at the last known coordinates.
+used to test the shmif- support function for tracking cursor state and
+for debugging coordinate translation issues
+
+glcube/ a quick port of robclark/kmscube
+
+btbar/ draw client-side decorated window for testing with
+        autocrop inputs and resize
+
+lastword/ test the handling of client provided notifications, alerts
+          and the last_words mechanism for conveying a termination
+					message.
+
+encfwd/ connect once as an encoder, and then as a normal client that
+        forwards what came through the encoder. A 'test' appl is
+				included to illustrate the context.
+
+
+noreg/ tests what happens if a client connects but refuses to register
+
+dbox/ tests dirty updates by moving a 32x32 square +8,+8 with region
+      updates every event-clocked frame or reset event
+
+scroll/ tests server side scroll and seeking by exposing CONTENT and
+        STREAMSTATUS events.
+
+passthrough/ tests h264 bitstream (with 00 00 00 01) passthrough of
+             preencoded video without reencode, use with arcan-net

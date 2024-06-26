@@ -1,0 +1,380 @@
+.\" groff -man -Tascii arcan.1
+.TH arcan 1 "November 2020" arcan "User manual"
+.SH NAME
+Arcan \- Scriptable Multimedia Engine
+.SH SYNOPSIS
+.B arcan
+.RI [ OPTIONS ]
+.B applname
+.RI [ APPLARGS ]
+
+.SH DESCRIPTION
+Arcan is a portable and fast self-sufficient multimedia engine for
+advanced visualization and analysis work in a wide range of applications
+e.g. game development, real-time streaming video, monitoring and
+surveillance, up to and including desktop compositors and window managers.
+
+.SH OPTIONS
+.IP "\fB-h, --help\fR"
+Show a brief summary of commands and usage.
+
+.IP "\fB-w, --width\fR \fIpixels\fR"
+Set the desired active canvas width. Setting this value to zero will let
+the display driver chose based on connected displays. This can be overridden
+by the running appl. This value will be cached/fetched from the database.
+
+.IP "\fB-h, --height\fR \fIpixels\fR"
+Set the desired active canvas height. Setting this value to zero will let
+the display driver chose based on connected displays. This can be overridden
+by the running appl. This value will be cached/fetched from the database.
+
+.IP "\fB-m, --conservative\fR"
+Toggle conservative memory management profile. The engine will store just
+enough metadata to be able to reconstruct static data sources (e.g. most
+textures, fonts etc.) should the display context need to be rebuilt.
+Note that the behaviors of this option may vary radically depending on
+video platform. Verify and Validate heavily when using conservative mode.
+
+.IP "\fB-W, --sync-strat\fR \fIstrategy\fR"
+Specify the synchronization strategy that the display driver should use
+initially. These are dependent on the built-time configuration of
+the engine and are listed at the end of running arcan with
+the --help command-line argument.
+
+.IP "\fB-M, --monitor\fR \fIrate\fR"
+Enable monitoring mode, every \fIrate\fR ticks, save a snapshot of the
+scripting engine state to a monitoring target (see -O, --monitor-out).
+If the rate is set to a negative value, only script errors will be written.
+
+.IP "\fB-O, --monitor-out \fItarget\fR"
+Defines the monitoring data recipient, used in combination with -M, --monitor.
+Either specify LOG:filename or LOGFD:fdno for a file destination or for
+
+.IP "\fB-C, --monitor-ctrl\fR"
+Sets STDIN to work as a blocking control interface / watchdog that is triggered
+upon sending SIGUSR1 to the process. This can preempt script execution and is
+intended as an internal developer facing channel for building better inspection
+and debugging tools. Refer to the source implementation for arcan_monitor.c for
+commands and processing.
+
+.IP "\fB-p, --rpath \fIpath\fR"
+Change default searchpath for shared resources, see the \fInamespaces\fR
+section below for additional details.
+
+.IP "\fB-B, --binpath \fIpath\fR"
+Specify the full path to the desired frameserver (e.g.
+/usr/bin/arcan_frameserver) or to a prefix /path/to/prefix_ (decode, encode,
+game, terminal, remoting).
+
+.IP "\fB-L, --libpath \fIpath\fR"
+Set the search path for native libraries (used e.g. by lua system_load).
+
+.IP "\fB-t, --applpath \fIpath\fR"
+Change default searchpath for applications, see the \fInamespaces\fR
+section below for additional details.
+
+.IP "\fB-T, --scriptpath \fIpath\fR"
+Change the default search path for builtin system scripts, see the
+\fInamespaces\fR section below for additional details.
+
+.IP "\fB-H, --hook\fR" \fIscript\fR"
+Specify a post-init (after running applname()) hook script that will be loaded
+and executed. The scripts are fetched from the system scripts namespace (-T,
+--scriptpath). Providing multiple -H arguments is allowed. See the
+\fIhookscripts\fR section below for additional details.
+
+.IP "\fB-b, --fallback \fIapplname\fR"
+If the running application crashes due to scripting error or from misuse of the
+API, all running external or recoverable \fIframeserver\fR, connections will be
+transferred to \fIapplname\fR. If applname is set to the reserved value :self
+the same appl will be used without running a verifyload cycle.
+
+.IP "\fB-d, --database \fIdbname\fR"
+Specify a different database for use when launching external targets and
+as a key/value store for the running application, overriding the default
+of HOMEDIR/.arcan/arcan.sqlite.
+
+.IP "\fB-g, --debug\fR"
+Increases debuglevel, more troubleshooting data will be sent to the standard
+error and standard output nodes. The active debuglevel is also exposed to
+scripts. This can be added multiple times for additional effect. Debuglevels
+over 2 enabled engine features that change engine behavior and notably increases
+verbosity.
+
+.IP "\fB-V, --version\fR"
+Print a version string to stdout and then terminate. This version string
+can be used to identify the build, including audio, video, input
+platforms and source code repository checkout id.
+
+.IP "\fB-1, --pipe-stdout\fr"
+This is only usable from an arcan_lwa instance. A requested connection point
+is generated and written to stdin. This is supposed to be used with a normal
+arcan instance running piped with -0 and act as a generic mechanism for
+hooking up multiple arcan instances in a pipes-and-filters structure.
+
+.IP "\fB-0, --pipe-stdin\fr"
+See the description for 'pipe-stdin'. Reads a single line from stdin and tries
+to open an external connection point with that name (assuming it passes normal
+connection point validation).
+
+.IP "\fB Unstable Arguments\fR"
+These are slated to be replaced with a more flexible display configuration
+system and will be changed in coming versions. Users should therefore take
+precautions to make sure to notice when upgrading as not to break scripts
+that depend on these features.
+
+.IP "\fB-S, --nosound\fR"
+Disable (silence) audio output.
+
+.IP "\fB-s, --windowed\fR"
+Set borderless, windowed display mode.
+
+.IP "\fB-f, --fullscreen\fR"
+Fullscreen switch, the display driver will attempt to force the connected
+display resolution to match the specified canvas dimensions.
+
+.IP "\fB-a, --multisamples\fR \fIsamples\fR"
+Enable multisampling (MSAA), default: 4 samples. If MSAA setup fails,
+the engine will silently revert to regular sampling.
+
+There is also a range of possible environment variables for tuning options
+related to the various input platforms. These are printed when you start
+arcan with the --help argument and vary depending on how the engine was
+compiled.
+
+.SH USER-NAMESPACES
+For dynamically exposing files and folders with user controlled petnames and
+access restructions, the database and the 'arcan' appl key value store is used.
+This is mainly useful / intended for cases where Arcan is used as the system
+display server and desktop. The keys and values follows the format:
+key=ns_petname value=Label:permissions:path.
+
+As an example, exposing the user home directory on a POSIX system would be:
+arcan_db add_appl_kv arcan ns_home Home:rw:/home/me
+
+This is intended to be controlled / managed by dynamic tools, like an external
+drive or encrypted storage mounting daemon.
+
+.SH NAMESPACES
+There is a large assortment of namespaces that the engine will search for when
+an appl requests read access to- or the creation of- a resource. The way these
+are set up will vary depending on command-line arguments, operating-system
+specific scans, if applname was specified as a relative/absolute path and on a
+series of environment variables.
+
+For a more detailed explanation on how this works from an appl developer
+perspective, please refer to the developer documentation on the wiki.
+
+This setup is rather complex in order to account for a large range of platforms
+and use-cases, with the most simple configuration being an application base
+folder (controlled with the \fB-t\fR command-line switch) and a shared resource
+folder (Controlled with the \fB-p\fR switch).
+
+The most important namespaces are the APPLBASE and the RESOURCEPATH.
+
+Appls can manipulate (create, open, read, write) the files within the confines
+of the \fBAPPLBASE/APPNAME\fR. Traversal (../) outside this path will be
+blocked, but a user can explicitly map (symlink, bind-mounts or similar) other
+paths into this namespace and the engine will allow it.
+
+Scripts are treated as an overlay namespace where there is a priority order in
+the event of a collision. By default, scripts are treated in the order of
+APPLTEMP -> APPLBASE -> SCRIPTPATH. More paranoid builds will want to disable
+APPLTEMP to prevent the creation of a unpacker scripts / code generation.
+
+The most fine-grained control can be obtained by setting a number of
+environment variables:
+
+.IP "\fBARCAN_RESOURCEPATH\fR"
+Shared resources, as described above.
+
+.IP "\fBARCAN_SCRIPTPATH\fR"
+The system script namespace contains shared scripts that are part of the
+general Arcan package to promote optional re-use of higher level analysis
+like mouse gestures. The default search-path for this is would be the
+share/arcan/scripts install path, though you might want to override this
+for custom setups or development purposes.
+
+.IP "\fBARCAN_APPLTEMPPATH\fR"
+Used when there is a need to split the folder that an appl can use as a
+writable (delete, create, update) backing store. By default, this is resolved
+to the same folder as the appl is - but can be unmapped to prevent an appl from
+killing or modifying itself.
+
+.IP "\fBARCAN_APPLBASEPATH\fR"
+This path is used to search for appls but may be ignored for absolute
+paths specified on the command-line.
+
+.IP "\fBARCAN_APPLSTOREPATH\fR"
+The default setting is to allow the appl full access to its own folder,
+but this can be split into a separate store. This will then expand as
+\fBARCAN_APPLSTOREPATH/APPLNAME\fR.
+
+.IP "\fBARCAN_STATEBASEPATH\fR"
+The default setting is to map this to RESOURCEPATH/savestates and will
+then be shared between all appls (which holds true whenever STATEBASE
+is set to a subdirectory of RESOURCEPATH).
+
+.IP "\fBARCAN_FONTPATH\fR"
+The default setting is to map this to the APPLPATH/fonts with fallback
+to RESOURCEPATH/fonts but can be set to some other system font directory
+for more fine-grained control (as font-parsing is complex and can be a
+source of vulnerabilities).
+
+.IP "\fBARCAN_BINPATH\fR"
+The default is to set this to /usr/bin/arcan_frameserver (or wherever
+the frameserver is installed, first searching ./ then /usr/local/bin
+then /usr/bin).
+
+.IP "\fBARCAN_LIBPATH\fR"
+This path specifies the directory where the appl is allowed to load
+libraries from using system_load. The namespace is referenced as
+RESOURCE_SYS_LIBS in the scripting documentation.
+
+.IP "\fBARCAN_LOGPATH\fR"
+Set to RESOURCEPATH/logs by default (if it exists) and is used for storing
+debugging, profiling and similar development/troubleshooting related data.
+This includes state dumps which may contain sensitive data.
+
+Some namespaces are also reset when an appl does an explicit switch,
+this behavior can be cancelled out by setting ARCAN_XXXPIN for any
+namespaces that should explicitly be locked to some path.
+
+.SH FRAMESERVERS
+A principal design decision behind Arcan is to split tasks that are inherently
+prone to security and stability issues into separate processes that should be
+sandboxed to as large a degree as possible with the principle of least
+privilege in mind.
+
+These behave like 'normal' clients but are grouped into fixed roles
+(archetypes), like 'decode' is responsible for image parsing and so on. They
+are chainloaded by 'arcan_frameserver' into its respective role (afsrv_) based
+on a probe done at startup, a build-time mask and an environment controlled
+mask. For instance, to block the 'terminal' role, set AFSRV_BLOCK_TERMINAL.
+
+It should be the active application (set of user-supplied scripts) that
+dynamically control the level of privilege, communication and data storage that
+such processes have access to.
+
+These are mainly an internal developer detail, some scripting functions
+transparently set them up - e.g. launch_decode(...) and
+define_recordtarget(...).
+
+.SH LIGHTWEIGHT (LWA) ARCAN
+
+Lightweight arcan is a specialized build of the engine that uses the
+frameserver shared memory API as its audio/video display backend. This allows
+Arcan to run and control additional instances of itself, with the same or
+a different application, thus reusing the engine to fulfill the role of
+application framework, rendering engine and display server all rolled into
+one.
+
+The lwa build works just the same (although likely with fewer dependencies on
+external libraries) as the main version, except the ARCAN_CONNPATH environment
+need to be set to a connection point that the arcan instance exposes.
+
+.SH HEADLESS ARCAN
+
+Headless arcan is a specialized build of the engine that performs all rendering
+in memory, and normally do not try to output anything to the screen. It adds
+the option to use other software defined outputs via the capabilities of the
+encode frameserver. By setting the video platform argument for
+ARCAN_VIDEO_ENCODE=encode_args, the output can be recorded or streamed,
+interactively as well as non-interactively. See the afsrv_encode binary for the
+possible encoding options.
+
+A special detail with this build is that, since there is no strict output, the
+default virtual display dimensions have to be set explicitly via the -w and -h
+arguments.
+
+.SH HOOK SCRIPTS
+
+There is a built-in set of more generic and re-usable scripts being distributed
+along with the engine. These are normally installed as a 'scripts' subdirectory
+in the shared set of files, though this path can be changed with the -T argument.
+
+A hookscript is enabled via the -H command line argument, which can be repeated
+to chain them together. Their arguments are extracted from the appl-arguments
+part of the command line in the key=value form.
+
+.IP "\fBhook/shutdown.lua\fR"
+This hookscript sets a timer to whatever a shutdown=number argument on the
+commandline provides, or the built-in default of 500 ticks. When the timer
+fires, an asynchronous shutdown request will be queued. This allows for easier
+automation and testing.
+
+.IP "\fBhook/external_input.lua\fR"
+This hookscript opens up a connection point where you can attach external input
+drivers. The default connection point for the first hook script will be
+extio_1, this will increment for each instance of the script that is added to
+the command line. The extio prefix can be tuned by adding the ext_io key to the
+database for the specific appl being run, and only one input provider can be
+attached to the connection point at a time.
+
+.IP "\fBhook/timed_dump.lua\fR"
+This script sets a timer to whatever dump_timer=number or dump_periodic=number
+on the command-line is set to. When the timer fires, it calls system_snapshot
+into 'timed_n.lua" or whatever dump_prefix is set to on the command-line.  The
+_n suffix corresponds to the dump sequence if on a periodic timer.
+
+.IP "\fBhook/debugstall.lua\fR"
+This scripts enables the frameserver debugstall (delay whenever a frameserver
+is launched) as a tool to make it easier to attach a debugger to it. The
+delay can be configured through debugstall=val (default is 10) on the command-
+line.
+
+.IP "\fBhook/alloc_debug\fR"
+This scripts intercepts all allocation functions and attaches a debug traceback
+as the 'tag' property of the video object. This can then be used in
+system_snapshot and crash-dumps to figure out where a certain allocation came
+from.
+
+.IP "\fBhook/touch_simulator.lua\fR"
+This script takes over mouse input and re-injects as touch input. Since it
+intercepts the input appl- handler, it is best used as a pre: hook rather than
+the default (post).
+
+.SH DIAGNOSTICS
+There are a number of ways the engine can shut down, especially if the engine
+was built in Debug mode. A governing principle for user supplied scripts is
+that of \fIFail Often, Early and Hard\fR. This means that API misuse, i.e.
+missing or wrong arguments will result in a crash and the related error
+description will be provided (color-coded) to the standard output, and that a
+state dump will be generated and stored in the namespace specified by
+ARCAN_LOGPATH.
+
+This state dump is a Lua parsable script that can be loaded either by a regular
+Lua interpreter.
+
+The environment variable \fBARCAN_FRAMESERVER_DEBUGSTALL\fR can be set if you
+suspect that a frameserver is involved, or to blame, for an issue. This will
+print the process ID (pid) of the new frameserver process to standard output,
+then sleep for the argument supplied number of seconds, to provide enough time
+to attach a debugger or tracing tool.
+
+There is also a way to trace the events that are passed between the main
+process and all the framesevers, and that is via the environment variable
+\fBARCAN_SHMIF_DEBUG=1\fR.
+
+.SH HOMEPAGE
+https://arcan-fe.com
+
+.SH SEE-ALSO
+.IX Header "SEE ALSO"
+\&\fIarcan_api_overview\fR\|(3) \&\fIarcan_lwa\fR\|(1) \&\fIarcan_frameserver\fR\|(1)
+\&\fIarcan_db\fR\|(1)
+
+.SH BUGS
+You can report bugs through the tracker on the github page. For normal contact
+and discussion, see the #arcan IRC channel on freenode. Save a snapshot of
+core-dumps (in the case of engine issues) or the appropriate resources/logs
+entries. For some issues, a copy of the database used and a list of files
+(with permissions) in applpath and resourcepath may also be relevant.
+
+.SH COPYRIGHT
+Copyright  ©  2003-2020 Bjorn Stahl. License GPLv2+ or BSD depending on build
+configuration. This is free software: you are free  to  change and redistribute
+it. There is NO WARRANTY, to the extent permitted by law.
+
+.SH AUTHOR
+Bjorn Stahl <contact at arcan-fe dot com>
